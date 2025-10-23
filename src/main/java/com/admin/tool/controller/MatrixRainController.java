@@ -10,19 +10,19 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
-@Tag(name = "Matrix Rain", description = "문자비 (매트릭스 효과) API")
+@Tag(name = "Matrix Rain", description = "Matrix Rain (매트릭스 효과) API")
 @Controller
 @RequestMapping("/matrix-rain")
 @RequiredArgsConstructor
 public class MatrixRainController {
 
-    @Operation(summary = "문자비 페이지 표시", description = "매트릭스 효과 문자비 페이지를 반환합니다")
+    @Operation(summary = "Matrix Rain 페이지 표시", description = "매트릭스 효과 Matrix Rain 페이지를 반환합니다")
     @GetMapping
     public String showMatrixRainPage() {
         return "matrix-rain.html";
     }
 
-    @Operation(summary = "기본 설정 조회", description = "문자비 기본 설정을 반환합니다")
+    @Operation(summary = "기본 설정 조회", description = "Matrix Rain 기본 설정을 반환합니다")
     @GetMapping("/settings/default")
     @ResponseBody
     @SecurityRequirement(name = "bearer-auth")
