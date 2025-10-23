@@ -34,7 +34,7 @@ public class LottoService {
         List<Integer> numbers = generateNumbers();
 
         // 히스토리 저장
-        saveHistory(numbers, null, "SINGLE");
+        saveHistory(numbers, "SINGLE");
 
         log.info("로또 번호 생성: {}", numbers);
         return LottoNumberResponse.of(numbers);
@@ -50,7 +50,7 @@ public class LottoService {
             List<Integer> numbers = generateNumbers();
 
             // 히스토리 저장
-            saveHistory(numbers, null, "MULTIPLE");
+            saveHistory(numbers, "MULTIPLE");
 
             results.add(LottoNumberResponse.of(numbers));
         }
@@ -81,57 +81,9 @@ public class LottoService {
     }
 
     /**
-     * 보너스 번호를 포함한 로또 번호 생성 (기본 6개 + 보너스 1개)
-     */
-    @Transactional
-    public Map<String, Object> generateLottoNumbersWithBonus() {
-        List<Integer> allNumbers = generateNumbersWithBonus();
-        List<Integer> mainNumbers = allNumbers.subList(0, NUMBERS_COUNT);
-        Integer bonusNumber = allNumbers.get(NUMBERS_COUNT);
-
-        // 히스토리 저장
-        saveHistory(mainNumbers, bonusNumber, "BONUS");
-
-        Map<String, Object> result = new HashMap<>();
-        result.put("mainNumbers", mainNumbers);
-        result.put("bonusNumber", bonusNumber);
-        result.put("generatedAt", new Date());
-
-        log.info("로또 번호 (보너스 포함) 생성: 메인 {}, 보너스 {}",
-                result.get("mainNumbers"), result.get("bonusNumber"));
-
-        return result;
-    }
-
-    private List<Integer> generateNumbersWithBonus() {
-        Random random = new Random();
-        List<Integer> numbers = IntStream.rangeClosed(MIN_NUMBER, MAX_NUMBER)
-                .boxed()
-                .collect(Collectors.toList());
-
-        Collections.shuffle(numbers, random);
-
-        // 7개 선택 (6개 메인 + 1개 보너스)
-        List<Integer> selected = numbers.stream()
-                .limit(NUMBERS_COUNT + 1)
-                .collect(Collectors.toList());
-
-        // 앞 6개는 정렬
-        List<Integer> mainNumbers = selected.subList(0, NUMBERS_COUNT).stream()
-                .sorted()
-                .collect(Collectors.toList());
-
-        // 결과 리스트: 정렬된 6개 + 보너스 1개
-        List<Integer> result = new ArrayList<>(mainNumbers);
-        result.add(selected.get(NUMBERS_COUNT)); // 보너스 번호
-
-        return result;
-    }
-
-    /**
      * 로또 번호 히스토리 저장
      */
-    private void saveHistory(List<Integer> numbers, Integer bonusNumber, String type) {
+    private void saveHistory(List<Integer> numbers, String type) {
         String username = getCurrentUsername();
         String numbersStr = numbers.stream()
                 .map(String::valueOf)
@@ -140,7 +92,6 @@ public class LottoService {
         LottoHistory history = LottoHistory.builder()
                 .username(username)
                 .numbers(numbersStr)
-                .bonusNumber(bonusNumber != null ? bonusNumber.toString() : null)
                 .generationType(type)
                 .build();
 

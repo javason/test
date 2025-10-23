@@ -29,13 +29,10 @@ public class LottoHistory {
     @Column(nullable = false, length = 100)
     private String numbers;  // 쉼표로 구분된 번호들 (예: "3,12,23,34,41,45")
 
-    @Column(length = 10)
-    private String bonusNumber;  // 보너스 번호 (있는 경우)
-
     @CreatedDate
     @Column(nullable = false, updatable = false)
     private LocalDateTime generatedAt;
 
     @Column(length = 50)
-    private String generationType;  // "SINGLE", "MULTIPLE", "BONUS"
+    private String generationType;  // "SINGLE", "MULTIPLE"
 }

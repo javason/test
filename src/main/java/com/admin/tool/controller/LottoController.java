@@ -19,7 +19,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 @Tag(name = "Lotto Number Generator", description = "로또 번호 생성 API")
 @RestController
@@ -70,16 +69,6 @@ public class LottoController {
                         String.format("로또 번호 %d세트가 생성되었습니다", count),
                         responses
                 )
-        );
-    }
-
-    @Operation(summary = "로또 번호 생성 (보너스 포함)",
-               description = "메인 번호 6개와 보너스 번호 1개를 생성합니다")
-    @GetMapping("/generate/bonus")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> generateLottoNumbersWithBonus() {
-        Map<String, Object> response = lottoService.generateLottoNumbersWithBonus();
-        return ResponseEntity.ok(
-                ApiResponse.success("로또 번호(보너스 포함)가 생성되었습니다", response)
         );
     }
 
