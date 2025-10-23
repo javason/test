@@ -1,5 +1,6 @@
 package com.admin.tool.controller;
 
+import com.admin.tool.common.Constants;
 import com.admin.tool.dto.ApiResponse;
 import com.admin.tool.dto.LottoGenerationRequest;
 import com.admin.tool.dto.LottoNumberResponse;
@@ -54,14 +55,14 @@ public class LottoController {
     }
 
     @Operation(summary = "로또 번호 여러 세트 생성 (쿼리 파라미터)",
-               description = "로또 번호를 여러 세트 생성합니다 (쿼리 파라미터 방식)")
+               description = "로또 번호를 여러 세트 생성합니다 (쿼리 파라미터 방식, 1-10세트)")
     @GetMapping("/generate/multiple")
     public ResponseEntity<ApiResponse<List<LottoNumberResponse>>> generateMultipleLottoNumbersByQuery(
             @RequestParam(defaultValue = "1") int count) {
 
-        // 범위 검증
-        if (count < 1) count = 1;
-        if (count > 10) count = 10;
+        // 범위 검증 및 조정
+        count = Math.max(Constants.Lotto.MIN_GENERATION_COUNT, count);
+        count = Math.min(Constants.Lotto.MAX_GENERATION_COUNT, count);
 
         List<LottoNumberResponse> responses = lottoService.generateMultipleLottoNumbers(count);
         return ResponseEntity.ok(
@@ -79,7 +80,11 @@ public class LottoController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
 
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "generatedAt"));
+        Pageable pageable = PageRequest.of(
+                page,
+                size,
+                Sort.by(Sort.Direction.valueOf(Constants.Pagination.DEFAULT_SORT_DIRECTION), "generatedAt")
+        );
         Page<LottoHistory> historyPage = lottoService.getUserHistory(pageable);
 
         return ResponseEntity.ok(

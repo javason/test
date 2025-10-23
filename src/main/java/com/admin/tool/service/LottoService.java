@@ -1,5 +1,6 @@
 package com.admin.tool.service;
 
+import com.admin.tool.common.Constants;
 import com.admin.tool.dto.LottoNumberResponse;
 import com.admin.tool.entity.LottoHistory;
 import com.admin.tool.repository.LottoHistoryRepository;
@@ -11,10 +12,14 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+/**
+ * 로또 번호 생성 및 관리 서비스
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -22,9 +27,10 @@ public class LottoService {
 
     private final LottoHistoryRepository lottoHistoryRepository;
 
-    private static final int MIN_NUMBER = 1;
-    private static final int MAX_NUMBER = 45;
-    private static final int NUMBERS_COUNT = 6;
+    // SecureRandom은 Thread-safe하므로 인스턴스 재사용
+    private final Random random = new SecureRandom();
+
+    private static final int RECENT_HISTORY_SIZE = 10;
 
     /**
      * 로또 번호 1세트 생성 (6개의 번호)
@@ -61,12 +67,14 @@ public class LottoService {
     /**
      * 1-45 사이의 숫자 중 중복되지 않는 6개를 랜덤하게 선택
      * 오름차순으로 정렬하여 반환
+     *
+     * @return 오름차순으로 정렬된 6개의 로또 번호
      */
     private List<Integer> generateNumbers() {
-        Random random = new Random();
-
         // 1부터 45까지의 숫자 리스트 생성
-        List<Integer> numbers = IntStream.rangeClosed(MIN_NUMBER, MAX_NUMBER)
+        List<Integer> numbers = IntStream.rangeClosed(
+                Constants.Lotto.MIN_NUMBER,
+                Constants.Lotto.MAX_NUMBER)
                 .boxed()
                 .collect(Collectors.toList());
 
@@ -75,7 +83,7 @@ public class LottoService {
 
         // 앞에서 6개 선택하고 오름차순 정렬
         return numbers.stream()
-                .limit(NUMBERS_COUNT)
+                .limit(Constants.Lotto.NUMBERS_COUNT)
                 .sorted()
                 .collect(Collectors.toList());
     }
@@ -119,7 +127,9 @@ public class LottoService {
     }
 
     /**
-     * 사용자의 최근 로또 번호 생성 히스토리 10개 조회
+     * 사용자의 최근 로또 번호 생성 히스토리 조회
+     *
+     * @return 최근 생성한 로또 번호 히스토리 (최대 10개)
      */
     public List<LottoHistory> getRecentHistory() {
         String username = getCurrentUsername();

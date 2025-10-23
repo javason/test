@@ -1,5 +1,6 @@
 package com.admin.tool.security;
 
+import com.admin.tool.common.Constants;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -16,6 +17,11 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+
+/**
+ * JWT 토큰 기반 인증 필터
+ * 모든 요청에 대해 JWT 토큰을 검증하고 인증 정보를 설정합니다.
+ */
 
 @Slf4j
 @Component
@@ -53,10 +59,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
+    /**
+     * HTTP 요청 헤더에서 JWT 토큰을 추출합니다.
+     *
+     * @param request HTTP 요청
+     * @return JWT 토큰 문자열, 없으면 null
+     */
     private String getJwtFromRequest(HttpServletRequest request) {
-        String bearerToken = request.getHeader("Authorization");
-        if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
-            return bearerToken.substring(7);
+        String bearerToken = request.getHeader(Constants.Jwt.HEADER_NAME);
+        if (StringUtils.hasText(bearerToken) && bearerToken.startsWith(Constants.Jwt.TOKEN_PREFIX)) {
+            return bearerToken.substring(Constants.Jwt.TOKEN_BEGIN_INDEX);
         }
         return null;
     }
