@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>문자비 (Matrix Rain)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Courier New', monospace;
+        }
+
+        #canvas {
+            display: block;
+            background-color: #000;
+        }
+
+        .controls {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            color: #0F0;
+            z-index: 100;
+            border: 1px solid #0F0;
+            min-width: 250px;
+        }
+
+        .controls h2 {
+            margin-bottom: 15px;
+            font-size: 20px;
+            text-align: center;
+            text-shadow: 0 0 10px #0F0;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        .control-group select,
+        .control-group input {
+            width: 100%;
+            padding: 8px;
+            background: #000;
+            color: #0F0;
+            border: 1px solid #0F0;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .control-group input[type="range"] {
+            cursor: pointer;
+        }
+
+        .control-group .range-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            background: #000;
+            color: #0F0;
+            border: 1px solid #0F0;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            background: #0F0;
+            color: #000;
+            box-shadow: 0 0 20px #0F0;
+        }
+
+        .toggle-controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+
+    <button class="toggle-controls" onclick="toggleControls()">설정 토글</button>
+
+    <div class="controls" id="controls">
+        <h2>문자비 설정</h2>
+
+        <div class="control-group">
+            <label for="characterType">문자 종류:</label>
+            <select id="characterType" onchange="changeCharacterType()">
+                <option value="alphabet">알파벳</option>
+                <option value="japanese">일본어</option>
+                <option value="korean">한글</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label for="speed">속도:</label>
+            <input type="range" id="speed" min="1" max="10" value="5" onchange="updateSpeed()">
+            <div class="range-label">
+                <span>느림</span>
+                <span id="speedValue">5</span>
+                <span>빠름</span>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label for="density">밀도:</label>
+            <input type="range" id="density" min="1" max="10" value="5" onchange="updateDensity()">
+            <div class="range-label">
+                <span>적음</span>
+                <span id="densityValue">5</span>
+                <span>많음</span>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label for="fontSize">글자 크기:</label>
+            <input type="range" id="fontSize" min="10" max="30" value="16" onchange="updateFontSize()">
+            <div class="range-label">
+                <span>작게</span>
+                <span id="fontSizeValue">16</span>
+                <span>크게</span>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label for="color">색상:</label>
+            <input type="color" id="color" value="#00FF00" onchange="updateColor()">
+        </div>
+
+        <button onclick="resetSettings()">기본 설정으로 초기화</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        // 캔버스 크기 설정
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // 문자 세트
+        const characterSets = {
+            alphabet: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*()_+-=[]{}|;:,.<>?',
+            japanese: 'あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをんアイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン',
+            korean: '가나다라마바사아자차카타파하거너더러머버서어저처커터퍼허고노도로모보소오조초코토포호구누두루무부수우주추쿠투푸후기니디리미비시이지치키티피히'
+        };
+
+        // 설정
+        let settings = {
+            characterType: 'alphabet',
+            characters: characterSets.alphabet,
+            fontSize: 16,
+            speed: 5,
+            density: 5,
+            color: '#00FF00'
+        };
+
+        // 컬럼 수와 각 컬럼의 y 위치
+        let columns = Math.floor(canvas.width / settings.fontSize);
+        let drops = Array(columns).fill(1);
+
+        // 문자 종류 변경
+        function changeCharacterType() {
+            const type = document.getElementById('characterType').value;
+            settings.characterType = type;
+            settings.characters = characterSets[type];
+        }
+
+        // 속도 업데이트
+        function updateSpeed() {
+            settings.speed = parseInt(document.getElementById('speed').value);
+            document.getElementById('speedValue').textContent = settings.speed;
+        }
+
+        // 밀도 업데이트
+        function updateDensity() {
+            settings.density = parseInt(document.getElementById('density').value);
+            document.getElementById('densityValue').textContent = settings.density;
+
+            // 밀도에 따라 컬럼 수 조정
+            columns = Math.floor(canvas.width / settings.fontSize) * (settings.density / 5);
+            drops = Array(Math.floor(columns)).fill(1);
+        }
+
+        // 글자 크기 업데이트
+        function updateFontSize() {
+            settings.fontSize = parseInt(document.getElementById('fontSize').value);
+            document.getElementById('fontSizeValue').textContent = settings.fontSize;
+
+            columns = Math.floor(canvas.width / settings.fontSize) * (settings.density / 5);
+            drops = Array(Math.floor(columns)).fill(1);
+        }
+
+        // 색상 업데이트
+        function updateColor() {
+            settings.color = document.getElementById('color').value;
+        }
+
+        // 기본 설정으로 초기화
+        function resetSettings() {
+            document.getElementById('characterType').value = 'alphabet';
+            document.getElementById('speed').value = 5;
+            document.getElementById('density').value = 5;
+            document.getElementById('fontSize').value = 16;
+            document.getElementById('color').value = '#00FF00';
+
+            settings = {
+                characterType: 'alphabet',
+                characters: characterSets.alphabet,
+                fontSize: 16,
+                speed: 5,
+                density: 5,
+                color: '#00FF00'
+            };
+
+            document.getElementById('speedValue').textContent = 5;
+            document.getElementById('densityValue').textContent = 5;
+            document.getElementById('fontSizeValue').textContent = 16;
+
+            columns = Math.floor(canvas.width / settings.fontSize);
+            drops = Array(columns).fill(1);
+        }
+
+        // 설정 패널 토글
+        function toggleControls() {
+            const controls = document.getElementById('controls');
+            controls.classList.toggle('hidden');
+        }
+
+        // 매트릭스 효과 그리기
+        function draw() {
+            // 페이드 효과를 위한 반투명 검은색 사각형
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 문자 스타일 설정
+            ctx.fillStyle = settings.color;
+            ctx.font = `${settings.fontSize}px monospace`;
+
+            // 각 컬럼에 문자 그리기
+            for (let i = 0; i < drops.length; i++) {
+                // 랜덤 문자 선택
+                const char = settings.characters[Math.floor(Math.random() * settings.characters.length)];
+
+                // 문자 그리기
+                const x = i * settings.fontSize;
+                const y = drops[i] * settings.fontSize;
+                ctx.fillText(char, x, y);
+
+                // 화면 끝에 도달했거나 랜덤하게 리셋
+                if (y > canvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+
+                // 다음 프레임을 위해 y 위치 증가 (속도에 따라)
+                drops[i] += settings.speed / 10;
+            }
+        }
+
+        // 애니메이션 루프
+        function animate() {
+            draw();
+
+            // 속도에 따라 프레임 속도 조절
+            const frameDelay = Math.max(30, 100 - settings.speed * 7);
+            setTimeout(() => {
+                requestAnimationFrame(animate);
+            }, frameDelay);
+        }
+
+        // 윈도우 리사이즈 처리
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            columns = Math.floor(canvas.width / settings.fontSize) * (settings.density / 5);
+            drops = Array(Math.floor(columns)).fill(1);
+        });
+
+        // 애니메이션 시작
+        animate();
+    </script>
+</body>
+</html>
